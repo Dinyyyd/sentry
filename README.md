@@ -13,9 +13,9 @@
 
 ## 🚀 Live Deployment - v1.0 Complete
 
-**Frontend:** https://sentry-xxxxx.vercel.app
-**Backend API:** https://sentry-api-xxxxx.up.railway.app
-**API Docs:** https://sentry-api-xxxxx.up.railway.app/docs
+**Frontend:** https://sentry-lilac-pi.vercel.app
+**Backend API:** https://sentry-production-3579.up.railway.app
+**API Docs:** https://sentry-production-3579.up.railway.app/docs
 **Database:** Neon PostgreSQL
 
 ### Stack

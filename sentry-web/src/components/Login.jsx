@@ -6,8 +6,8 @@ export default function Login({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isRegister, setIsRegister] = useState(false);
-  const API_URL = "sentry-production-3579.up.railway.app";
+  const [isRegister, setIsRegister]sentry-production-3579.up.railway.app = useState(false);
+  const API_URL = "";
   
 
   const handleSubmit = async (e) => {
