@@ -10,3 +10,30 @@
 - Neon: Genuinely free PostgreSQL (never expires)
 - React + Vite: Fast frontend deployment-ready
 
+
+## 🚀 Live Deployment - v1.0 Complete
+
+**Frontend:** https://sentry-xxxxx.vercel.app
+**Backend API:** https://sentry-api-xxxxx.up.railway.app
+**API Docs:** https://sentry-api-xxxxx.up.railway.app/docs
+**Database:** Neon PostgreSQL
+
+### Stack
+- **Frontend:** React 18 + Vite (Vercel)
+- **Backend:** FastAPI (Railway)
+- **Database:** PostgreSQL (Neon)
+- **Auth:** JWT + Argon2
+
+### Deployment Decisions
+✅ **Neon:** Genuinely free PostgreSQL (never expires)
+✅ **Railway:** 24/7 uptime + $5/month credit (doesn't sleep)
+✅ **Vercel:** Free frontend hosting with auto-deployments
+✅ **Secrets:** All in environment variables (never in code)
+
+### How to Use
+1. Open frontend URL
+2. Register or login
+3. Create and manage incidents
+4. All data persists in live database
+5. Works 24/7 on any device
+
