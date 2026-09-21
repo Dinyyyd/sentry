@@ -21,7 +21,9 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173",
+                   "https://sentry-lilac-pi.vercel.app",
+                   "https://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -149,6 +151,7 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     # Return token
     token = create_access_token(user.email)
     return {"access_token": token, "token_type": "bearer"}
+
 
 # ============ Create Incident (Now requires auth) ============
 if __name__ == "__main__":
