@@ -7,7 +7,8 @@ export default function IncidentsList({ refreshTrigger }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [closingId, setClosingId] = useState(null); // Track which incident is being closed
-
+  const API_URL = "sentry-production-3579.up.railway.app";
+  
   const fetchIncidents = async () => {
     try {
       setLoading(true);

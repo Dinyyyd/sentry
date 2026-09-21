@@ -7,6 +7,8 @@ export default function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isRegister, setIsRegister] = useState(false);
+  const API_URL = "sentry-production-3579.up.railway.app";
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,7 +17,7 @@ export default function Login({ onLoginSuccess }) {
 
     try {
       const endpoint = isRegister ? '/register' : '/login';
-      const response = await axios.post(`http://localhost:8000${endpoint}`, {
+      const response = await axios.post(`https://${API_URL}${endpoint}`, {
         email,
         password,
       });

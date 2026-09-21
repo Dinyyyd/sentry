@@ -11,6 +11,7 @@ export default function CreateIncident({ onIncidentCreated }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const API_URL = "sentry-production-3579.up.railway.app";
 
   // Handle input changes
   const handleChange = (e) => {
