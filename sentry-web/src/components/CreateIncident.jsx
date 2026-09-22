@@ -25,22 +25,6 @@ export default function CreateIncident({ onIncidentCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const response = await api.post(endpoint, {
-        email,
-        password,
-    })
-
-    if (isRegister) {
-        setIsRegister(false);
-        setPassword('');
-        setError('Registration successful! Please log in with your credentials.');
-        return;
-    }
-
-    localStorage.setItem('token', response.data.access_token);
-    onLoginSuccess();
-    
-    // IMPORTANT: Disable button immediately
     setLoading(true);
     setError(null);
 

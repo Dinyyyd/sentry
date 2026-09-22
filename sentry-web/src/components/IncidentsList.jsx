@@ -11,7 +11,10 @@ export default function IncidentsList({ refreshTrigger }) {
   const fetchIncidents = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/incidents');
+      const token = localStorage.getItem('token');
+      const response = await api.get('/incidents', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       setIncidents(response.data);
       setError(null);
     } catch (err) {
@@ -27,7 +30,10 @@ export default function IncidentsList({ refreshTrigger }) {
     setClosingId(incidentId); // Disable button immediately
 
     try {
-      await api.post(`/incidents/${incidentId}/close`);
+      const token = localStorage.getItem('token');
+      await api.post(`/incidents/${incidentId}/close`, null, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       await fetchIncidents(); // Refetch incidents to update the list
     } catch (err) {
       console.error('Error closing incident:', err);
