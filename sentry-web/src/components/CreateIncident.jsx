@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import './CreateIncident.css';
 
 export default function CreateIncident({ onIncidentCreated }) {
@@ -11,7 +11,6 @@ export default function CreateIncident({ onIncidentCreated }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const API_URL = "sentry-production-3579.up.railway.app";
 
   // Handle input changes
   const handleChange = (e) => {
@@ -25,6 +24,21 @@ export default function CreateIncident({ onIncidentCreated }) {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const response = await api.post(endpoint, {
+        email,
+        password,
+    })
+
+    if (isRegister) {
+        setIsRegister(false);
+        setPassword('');
+        setError('Registration successful! Please log in with your credentials.');
+        return;
+    }
+
+    localStorage.setItem('token', response.data.access_token);
+    onLoginSuccess();
     
     // IMPORTANT: Disable button immediately
     setLoading(true);
@@ -32,7 +46,7 @@ export default function CreateIncident({ onIncidentCreated }) {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:8000/incidents', {
+      await api.post('/incidents', {
         incident_title: formData.incident_title,
         incident_description: formData.incident_description,
         incident_site: formData.incident_site,
@@ -53,7 +67,14 @@ export default function CreateIncident({ onIncidentCreated }) {
       // Refetch the list
       onIncidentCreated();
     } catch (err) {
-      setError('Failed to create incident');
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        setError('Your session expired. Please log in again.');
+      } else if (!err.response) {
+        setError('Unable to reach the server. Check the API deployment.');
+      } else {
+        setError(err.response.data?.detail || 'Failed to create incident');
+      }
       console.error(err);
     } finally {
       setLoading(false);

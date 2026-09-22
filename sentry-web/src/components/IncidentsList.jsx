@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import './IncidentsList.css';
 
 export default function IncidentsList({ refreshTrigger }) {
@@ -7,16 +7,15 @@ export default function IncidentsList({ refreshTrigger }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [closingId, setClosingId] = useState(null); // Track which incident is being closed
-  const API_URL = "sentry-production-3579.up.railway.app";
   
   const fetchIncidents = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8000/incidents');
+      const response = await api.get('/incidents');
       setIncidents(response.data);
       setError(null);
     } catch (err) {
-      setError('Failed to load incidents');
+      setError(err.response?.data?.detail || 'Failed to load incidents');
       console.error(err);
     } finally {
       setLoading(false);
@@ -28,7 +27,7 @@ export default function IncidentsList({ refreshTrigger }) {
     setClosingId(incidentId); // Disable button immediately
 
     try {
-      await axios.post(`http://localhost:8000/incidents/${incidentId}/close`);
+      await api.post(`/incidents/${incidentId}/close`);
       await fetchIncidents(); // Refetch incidents to update the list
     } catch (err) {
       console.error('Error closing incident:', err);

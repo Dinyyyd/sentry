@@ -1,9 +1,11 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Incident(BaseModel):
     """Model representing an incident report."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     incident_id: Optional[int] = Field(None, description="Unique identifier")
     incident_title: str = Field(..., description="Title of the incident")

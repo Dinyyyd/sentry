@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime, timezone
+import os
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,7 @@ from models import Incident
 from sql_models import IncidentDB, UserDB
 from database import Base, SessionLocal, engine, get_db
 from fastapi import Header
-from schemas import UserRegister, UserLogin, TokenResponse, IncidentCreate
+from schemas import UserRegister, UserLogin, TokenResponse, IncidentCreate, RegistrationResponse
 from auth import (
     create_access_token,
     decode_access_token,
@@ -21,9 +22,14 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173",
-                   "https://sentry-lilac-pi.vercel.app",
-                   "https://localhost:8000"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:5173,https://sentry-lilac-pi.vercel.app",
+        ).split(",")
+        if origin.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,16 +61,19 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
 # ============ API Routes ============
 
 @app.get("/incidents", response_model=list[Incident], status_code=status.HTTP_200_OK)
-def get_incidents(db: Session = Depends(get_db)):
-    """Get all incidents from the database."""
-    incidents = db.query(IncidentDB).all()
+def get_incidents(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    """Get all incidents for the authenticated user."""
+    incidents = db.query(IncidentDB).filter(IncidentDB.reporter_id == current_user.user_id).all()
     return incidents
 
 
 @app.get("/incidents/{incident_id}", response_model=Incident, status_code=status.HTTP_200_OK)
-def get_incident_by_id(incident_id: int, db: Session = Depends(get_db)):
-    """Get a single incident by ID."""
-    incident = db.query(IncidentDB).filter(IncidentDB.incident_id == incident_id).first()
+def get_incident_by_id(incident_id: int, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    """Get a single incident by ID (only if owned by current user)."""
+    incident = db.query(IncidentDB).filter(
+        IncidentDB.incident_id == incident_id,
+        IncidentDB.reporter_id == current_user.user_id
+    ).first()
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
     return incident
@@ -94,9 +103,12 @@ def create_incident(
 
 
 @app.post("/incidents/{incident_id}/close", response_model=Incident, status_code=status.HTTP_200_OK)
-def close_incident(incident_id: int, db: Session = Depends(get_db)):
-    """Close an open incident."""
-    incident = db.query(IncidentDB).filter(IncidentDB.incident_id == incident_id).first()
+def close_incident(incident_id: int, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    """Close an open incident (only if owned by current user)."""
+    incident = db.query(IncidentDB).filter(
+        IncidentDB.incident_id == incident_id,
+        IncidentDB.reporter_id == current_user.user_id
+    ).first()
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
 
@@ -110,7 +122,7 @@ def close_incident(incident_id: int, db: Session = Depends(get_db)):
     return incident
 
 # ============ Register ============
-@app.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserRegister, db: Session = Depends(get_db)):
     """Register a new user. Hash password before storing."""
     # Check if user exists
@@ -131,9 +143,8 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    # Return token
-    token = create_access_token(new_user.email)
-    return {"access_token": token, "token_type": "bearer"}
+    # Return success message (not a token)
+    return {"message": "Registration successful! Please login with your credentials.", "email": new_user.email}
 
 
 # ============ Login ============

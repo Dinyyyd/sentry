@@ -16,6 +16,11 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
 
+class RegistrationResponse(BaseModel):
+    """Response after successful registration."""
+    message: str
+    email: str
+
 class UserResponse(BaseModel):
     """User info (no password!)."""
     user_id: int

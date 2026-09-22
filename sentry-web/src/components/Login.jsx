@@ -1,34 +1,49 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { api } from '../api';
+import './Login.css';
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isRegister, setIsRegister]sentry-production-3579.up.railway.app = useState(false);
-  const API_URL = "";
+  const [success, setSuccess] = useState(null);
+  const [isRegister, setIsRegister] = useState(false); 
   
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const endpoint = isRegister ? '/register' : '/login';
-      const response = await axios.post(`https://${API_URL}${endpoint}`, {
+      const response = await api.post(endpoint, {
         email,
         password,
       });
 
-      // Save token
-      localStorage.setItem('token', response.data.access_token);
-      
-      // Call callback
-      onLoginSuccess();
+      if (isRegister) {
+        // Registration successful - show message and switch to login
+        setSuccess('Registration successful! Now please login with your credentials.');
+        setPassword('');
+        setIsRegister(false);
+      } else {
+        // Login successful - save token and redirect
+        localStorage.setItem('token', response.data.access_token);
+        onLoginSuccess();
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Authentication failed');
+      if (err.response?.status === 400) {
+        setError(err.response.data.detail || 'That email is already registered');
+      } else if (err.response?.status === 401) {
+        setError('Incorrect email or password');
+      } else if (!err.response) {
+        setError('Unable to reach the server. Check the API deployment.');
+      } else {
+        setError(err.response.data.detail || 'Authentication failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -57,6 +72,7 @@ export default function Login({ onLoginSuccess }) {
       />
 
       {error && <div className="error">{error}</div>}
+      {success && <div className="success">{success}</div>}
 
       <button type="submit" disabled={loading}>
         {loading ? 'Loading...' : isRegister ? 'Register' : 'Login'}
@@ -64,7 +80,11 @@ export default function Login({ onLoginSuccess }) {
 
       <button
         type="button"
-        onClick={() => setIsRegister(!isRegister)}
+        onClick={() => {
+          setIsRegister(!isRegister);
+          setError(null);
+          setSuccess(null);
+        }}
         disabled={loading}
         className="toggle-btn"
       >
