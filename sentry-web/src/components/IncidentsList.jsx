@@ -83,8 +83,8 @@ export default function IncidentsList({ refreshTrigger }) {
             <td>{incident.incident_title}</td>
             <td>{incident.incident_site}</td>
             <td>
-              <span className={`badge ${incident.incident_severity.toLowerCase()}`}>
-                {incident.incident_severity}
+              <span className={`badge ${incident.incident_severity?.toLowerCase() || 'unassigned'}`}>
+                {incident.incident_severity || 'Not decided yet'}
               </span>
             </td>
             <td>{new Date(incident.incident_reported_at).toLocaleDateString()}</td>

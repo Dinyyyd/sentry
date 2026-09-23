@@ -1,10 +1,13 @@
 import axios from 'axios';
 
-const configuredApiUrl = import.meta.env.VITE_API_URL || 'https://sentry-production-3579.up.railway.app';
+// Read the address from the env file (local) or Vercel settings (live)
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() || 'http://localhost:8000';
 const normalizedApiUrl = /^https?:\/\//i.test(configuredApiUrl)
   ? configuredApiUrl
   : `https://${configuredApiUrl}`;
-const API_URL = normalizedApiUrl.replace(/\/$/, '');
+
+// Avoid double slashes when request paths start with "/".
+export const API_URL = normalizedApiUrl.replace(/\/+$/, '');
 
 export const api = axios.create({
   baseURL: API_URL,

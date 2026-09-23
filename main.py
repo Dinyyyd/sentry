@@ -1,21 +1,25 @@
-from typing import Optional
 from datetime import datetime, timezone
 import os
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from models import Incident
 from sql_models import IncidentDB, UserDB
-from database import Base, SessionLocal, engine, get_db
+from database import Base, engine, get_db
 from fastapi import Header
-from schemas import UserRegister, UserLogin, TokenResponse, IncidentCreate, RegistrationResponse
+from schemas import (
+    IncidentCreate,
+    IncidentOut,
+    RegistrationResponse,
+    TokenResponse,
+    UserLogin,
+    UserRegister,
+)
 from auth import (
     create_access_token,
     decode_access_token,
     hash_password,
     verify_password,
 )
-
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -38,37 +42,47 @@ app.add_middleware(
 
 # ============ Helper Functions ============
 
-def get_current_timestamp() -> str:
+def get_current_timestamp() -> datetime:
     """Get current UTC timestamp in ISO format."""
-    return datetime.now(timezone.utc).isoformat() + "Z"
+    return datetime.now(timezone.utc)
 
 def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
-    """Extract user from token."""
+    # Check 1: Is there a header at all?
     if not authorization:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = authorization.replace("Bearer ", "")
+        raise HTTPException(status_code=401, detail="No Authorization header sent")
+
+    # Check 2: Does it start with "Bearer "?
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Header must start with 'Bearer '")
+
+    token = authorization.removeprefix("Bearer ").strip()
+
+    # Check 3: Did the frontend send an empty or undefined token?
+    if token in ("", "undefined", "null"):
+        raise HTTPException(status_code=401, detail="Token is empty or undefined (check Login.jsx)")
+
+    # Check 4: Is the token valid and not expired?
     email = decode_access_token(token)
-    
-    if not email:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    if email is None:
+        raise HTTPException(status_code=401, detail="Token invalid or expired")
+
+    # Check 5: Does the user still exist?
     user = db.query(UserDB).filter(UserDB.email == email).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    
+    if user is None:
+        raise HTTPException(status_code=401, detail="User in token not found")
+
     return user
 
 # ============ API Routes ============
 
-@app.get("/incidents", response_model=list[Incident], status_code=status.HTTP_200_OK)
+@app.get("/incidents", response_model=list[IncidentOut], status_code=status.HTTP_200_OK)
 def get_incidents(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     """Get all incidents for the authenticated user."""
     incidents = db.query(IncidentDB).filter(IncidentDB.reporter_id == current_user.user_id).all()
     return incidents
 
 
-@app.get("/incidents/{incident_id}", response_model=Incident, status_code=status.HTTP_200_OK)
+@app.get("/incidents/{incident_id}", response_model=IncidentOut, status_code=status.HTTP_200_OK)
 def get_incident_by_id(incident_id: int, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     """Get a single incident by ID (only if owned by current user)."""
     incident = db.query(IncidentDB).filter(
@@ -80,7 +94,7 @@ def get_incident_by_id(incident_id: int, db: Session = Depends(get_db), current_
     return incident
 
 
-@app.post("/incidents", response_model=Incident, status_code=status.HTTP_201_CREATED)
+@app.post("/incidents", response_model=IncidentOut, status_code=status.HTTP_201_CREATED)
 def create_incident(
     incident_data: IncidentCreate,
     db: Session = Depends(get_db),
@@ -102,8 +116,7 @@ def create_incident(
     db.refresh(new_incident)
     return new_incident
 
-
-@app.post("/incidents/{incident_id}/close", response_model=Incident, status_code=status.HTTP_200_OK)
+@app.post("/incidents/{incident_id}/close", response_model=IncidentOut, status_code=status.HTTP_200_OK)
 def close_incident(incident_id: int, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
     """Close an open incident (only if owned by current user)."""
     incident = db.query(IncidentDB).filter(

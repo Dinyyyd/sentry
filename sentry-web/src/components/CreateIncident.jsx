@@ -2,127 +2,104 @@ import { useState } from 'react';
 import { api } from '../api';
 import './CreateIncident.css';
 
-export default function CreateIncident({ onIncidentCreated }) {
-  const [formData, setFormData] = useState({
-    incident_title: '',
-    incident_description: '',
-    incident_site: '',
-    incident_severity: 'Low',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const emptyForm = {
+  incident_title: '',
+  incident_description: '',
+  incident_site: '',
+  incident_severity: '', // '' means "Not decided yet"
+};
 
-  // Handle input changes
+export default function CreateIncident({ onIncidentCreated }) {
+  const [form, setForm] = useState(emptyForm);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // One handler for every input, using each input's "name"
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setError('');
     setLoading(true);
-    setError(null);
+
+    // Prepare the data right before sending
+    const body = {
+      ...form,
+      incident_severity: form.incident_severity === '' ? null : form.incident_severity,
+      incident_reported_at: new Date().toISOString(), // includes timezone ("Z" = UTC)
+    };
 
     try {
-      const token = localStorage.getItem('token');
-      await api.post('/incidents', {
-        incident_title: formData.incident_title,
-        incident_description: formData.incident_description,
-        incident_site: formData.incident_site,
-        incident_severity: formData.incident_severity,
-        incident_reported_at: new Date().toISOString(),
-      }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      // Reset form
-      setFormData({
-        incident_title: '',
-        incident_description: '',
-        incident_site: '',
-        incident_severity: 'Low',
-      });
-
-      // Refetch the list
-      onIncidentCreated();
+      await api.post('/incidents', body);
+      setForm(emptyForm);
+      if (onIncidentCreated) onIncidentCreated();
     } catch (err) {
+      const detail = err.response?.data?.detail;
+
       if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        setError('Your session expired. Please log in again.');
+        setError(`Not authorized: ${detail}`);
+      } else if (Array.isArray(detail)) {
+        const validationErrors = detail.map((item) => {
+          const field = item.loc?.at(-1);
+          return field ? `${field}: ${item.msg}` : item.msg;
+        });
+        setError(validationErrors.join(' '));
       } else if (!err.response) {
-        setError('Unable to reach the server. Check the API deployment.');
+        setError('Unable to reach the server. Check that the API is running.');
       } else {
-        setError(err.response.data?.detail || 'Failed to create incident');
+        setError(typeof detail === 'string' ? detail : 'Could not create incident. Check the fields.');
       }
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="create-incident-form">
+    <div className="create-incident">
       <h2>Create New Incident</h2>
 
-      <div className="form-group">
-        <label>Title *</label>
+      {error && <div className="error">{error}</div>}
+
+      <form onSubmit={handleSubmit}>
         <input
-          type="text"
           name="incident_title"
-          value={formData.incident_title}
+          placeholder="Title"
+          value={form.incident_title}
           onChange={handleChange}
           required
-          disabled={loading}
         />
-      </div>
-
-      <div className="form-group">
-        <label>Description *</label>
         <textarea
           name="incident_description"
-          value={formData.incident_description}
+          placeholder="Description"
+          value={form.incident_description}
           onChange={handleChange}
           required
-          disabled={loading}
         />
-      </div>
-
-      <div className="form-group">
-        <label>Site *</label>
         <input
-          type="text"
           name="incident_site"
-          value={formData.incident_site}
+          placeholder="Site"
+          value={form.incident_site}
           onChange={handleChange}
           required
-          disabled={loading}
         />
-      </div>
-
-      <div className="form-group">
-        <label>Severity *</label>
         <select
           name="incident_severity"
-          value={formData.incident_severity}
+          value={form.incident_severity}
           onChange={handleChange}
-          disabled={loading}
         >
-          <option>Low</option>
-          <option>Medium</option>
-          <option>High</option>
+          <option value="">Not decided yet</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Critical">Critical</option>
         </select>
-      </div>
 
-      {error && <div className="error-message">{error}</div>}
-
-      <button type="submit" disabled={loading}>
-        {loading ? 'Creating...' : 'Create Incident'}
-      </button>
-    </form>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Creating...' : 'Create Incident'}
+        </button>
+      </form>
+    </div>
   );
 }
