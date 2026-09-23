@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-// Read the address from the env file (local) or Vercel settings (live)
-const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() || 'http://localhost:8000';
+const defaultApiUrl = import.meta.env.DEV
+  ? 'http://localhost:8000'
+  : 'https://sentry-production-3579.up.railway.app';
+
+// Read the address from the env file when configured, otherwise use the
+// appropriate local or deployed default.
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim() || defaultApiUrl;
 const normalizedApiUrl = /^https?:\/\//i.test(configuredApiUrl)
   ? configuredApiUrl
   : `https://${configuredApiUrl}`;
